@@ -27,7 +27,7 @@ app.get('/', (req, res) => {
   });
 });
 
-const port = process.env.port || 3001;
+const port = process.env.PORT || 3001;
 
 app.listen(port, () => {
   console.log('We are live', port);
