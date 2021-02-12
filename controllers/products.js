@@ -1,23 +1,25 @@
 import { Storage } from '@google-cloud/storage';
+import admin from 'firebase-admin';
 import dotenv from 'dotenv';
 import {client} from '../services/db';
 import handleResponse from '../helpers/handleResponse';
 import { ObjectId } from 'mongodb';
 import sendMail from '../helpers/sendMail';
 import sendText from '../helpers/sendText';
+const config = require("../config").config;
+
 dotenv.config();
 
-const storage = new Storage({
-  projectId: process.env.GC_PROJECT_ID,
-  keyFilename: process.env.GC_APPLICATION_CREDENTIALS,
+admin.initializeApp({
+  credential: admin.credential.cert(config),
+  storageBucket: process.env.GC_STORAGE_BUCKET_URL
 });
 
-const bucket = storage.bucket(process.env.GC_STORAGE_BUCKET_URL);
+const bucket = admin.storage().bucket();
 
 const products = {
   add: (req, res) => {
     const { name, location } = req.body;
-    console.log(req.file)
     if (!req.file) {
       return handleResponse(res, 400, 'No image file uploaded.');
     }
@@ -29,7 +31,9 @@ const products = {
       },
     });
 
-    blobWriter.on('error', (err) => next(err));
+    blobWriter.on('error', (err) => {
+      console.log(err)
+      handleResponse(res, 400, 'Error uploading image file.')});
     blobWriter.on('finish', () => {
       const imgUrl = `https://firebasestorage.googleapis.com/v0/b/${
         bucket.name
