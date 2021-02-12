@@ -1,18 +1,8 @@
 import express from 'express';
 import bodyParser from 'body-parser';
 import dotenv from 'dotenv';
-import multer from 'multer';
 import Route from './routes';
 
-var firebaseConfig = {
-  apiKey: '<your-api-key>',
-  authDomain: '<your-auth-domain>',
-  databaseURL: '<your-database-url>',
-  storageBucket: '<your-storage-bucket-url>'
-};
-firebase.initializeApp(firebaseConfig);
-
-var storage = firebase.storage();
 
 dotenv.config();
 
@@ -37,7 +27,7 @@ app.get('/', (req, res) => {
   });
 });
 
-const port = process.env.port || 3000;
+const port = process.env.port || 3001;
 
 app.listen(port, () => {
   console.log('We are live', port);

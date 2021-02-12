@@ -1,28 +1,56 @@
+import { Storage } from '@google-cloud/storage';
+import dotenv from 'dotenv';
 import {client} from '../services/db';
 import handleResponse from '../helpers/handleResponse';
 import { ObjectId } from 'mongodb';
 import sendMail from '../helpers/sendMail';
 import sendText from '../helpers/sendText';
+dotenv.config();
+
+const storage = new Storage({
+  projectId: process.env.GC_PROJECT_ID,
+  keyFilename: process.env.GC_APPLICATION_CREDENTIALS,
+});
+
+const bucket = storage.bucket(process.env.GC_STORAGE_BUCKET_URL);
 
 const products = {
   add: (req, res) => {
-    const { name, image, location } = req.body;
+    const { name, location } = req.body;
+    console.log(req.file)
+    if (!req.file) {
+      return handleResponse(res, 400, 'No image file uploaded.');
+    }
     const decoded = req.decoded.data;
-    client.connect(async (err, client2) => {
-      if (err) {
-        return handleResponse(res, 500, 'Error Connecting to Database!');
-      } else {
-        const products = client2.db("productsManager").collection("products");
-        const response = await products.insertOne({
-          name, image, location, userName: decoded.name, userEmail:decoded.email
-        });
-        if (response.result.n === 1) {
-          return handleResponse(res, 201, 'user created', {name, image, location, userName: decoded.name, userEmail: decoded.email });
-        } else {
-          return handleResponse(res, 500, 'Error adding product');
-        }
-      }
+    const blob = bucket.file(req.file.originalname);
+    const blobWriter = blob.createWriteStream({
+      metadata: {
+        contentType: req.file.mimetype,
+      },
     });
+
+    blobWriter.on('error', (err) => next(err));
+    blobWriter.on('finish', () => {
+      const imgUrl = `https://firebasestorage.googleapis.com/v0/b/${
+        bucket.name
+      }/o/${encodeURI(blob.name)}?alt=media`;
+      client.connect(async (err, client2) => {
+        if (err) {
+          return handleResponse(res, 500, 'Error Connecting to Database!');
+        } else {
+          const products = client2.db("productsManager").collection("products");
+          const response = await products.insertOne({
+            name, image: imgUrl, location, userName: decoded.name, userEmail:decoded.email
+          });
+          if (response.result.n === 1) {
+            return handleResponse(res, 201, 'product added', {name, image: imgUrl, location, userName: decoded.name, userEmail: decoded.email });
+          } else {
+            return handleResponse(res, 500, 'Error adding product');
+          }
+        }
+      });
+    });
+    blobWriter.end(req.file.buffer);
   },
 
   getByLocation: (req, res) => {

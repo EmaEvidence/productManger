@@ -19,13 +19,12 @@ class Validator {
   }
 
   product(req, res, next) {
-    const { name, image, location, userName, userEmail, phone } = req.body;
+    const { name, location } = req.body;
+    console.log(req.file, '=-=-=-=-=-')
     if (!name || name.trim().length === 0) {
       handleResponse(res, 400, 'Product name must be specified');
     } else if (!location || location.trim().length === 0) {
       handleResponse(res, 400, 'Location must be specified');
-    } else if (!image || image.trim() === 0) {
-      handleResponse(res, 400, 'Invalid image supplied');
     } else {
       next();
     }
